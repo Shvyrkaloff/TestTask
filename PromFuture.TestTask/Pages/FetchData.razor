@@ -1,0 +1,262 @@
+﻿@page "/fetchdata"
+@using PromFuture.TestTask.Models
+@using PromFuture.TestTask.Services;
+@using System.Reflection;
+
+<PageTitle>Отправка команды на терминал</PageTitle>
+<GridRow>
+    <GridCol Span="12">
+        <div>
+            @if(terminalsId.Count != 0 || terminalsId != null)
+            {
+                <Select TItem="string"
+                    TItemValue="string"
+                    DataSource="@terminalsId"
+                    @bind-Value="@terminalId"
+                    Placeholder="Введите ИД терминала"
+                    DefaultActiveFirstOption="false"
+                    EnableSearch>
+                </Select>
+            }
+        </div>
+
+        <br />
+    </GridCol>
+    <GridCol Span="12">
+        <Select TItem="Commands"
+                TItemValue="int"
+                DataSource="@_commands"
+                @bind-Value="@_selectedValue"
+                LabelName="@nameof(Commands.name)"
+                ValueName="@nameof(Commands.id)"
+                Placeholder="Выберите команду"
+                DefaultActiveFirstOption="false"
+                EnableSearch
+                OnBlur="OnBlur"
+                OnFocus="OnFocus"
+                OnSelectedItemChanged="OnSelectedItemChangedHandler"
+                OnSearch="OnSearch">
+        </Select>
+        <Form Model="@model"
+              LabelColSpan="8"
+              WrapperColSpan="16">
+            @if (keyValuePairs.TryGetValue("parameter_name1", out var value1))
+            {
+                <FormItem Label="@keyValuePairs["parameter_name1"].ToString()">
+                    <Input @bind-Value=model.parameter_default_value1 />
+                </FormItem>
+            }
+            @if (keyValuePairs.TryGetValue("parameter_name2", out var value2))
+            {
+                <FormItem Label="@keyValuePairs["parameter_name2"].ToString()">
+                    <Input @bind-Value=model.parameter_default_value2 />
+                </FormItem>
+            }
+            @if (keyValuePairs.TryGetValue("parameter_name3", out var value3))
+            {
+                <FormItem Label="@keyValuePairs["parameter_name3"].ToString()">
+                    <Input @bind-Value=model.parameter_default_value3 />
+                </FormItem>
+            }
+            @if (keyValuePairs.TryGetValue("parameter_name4", out var value4))
+            {
+                <FormItem Label="@keyValuePairs["parameter_name4"].ToString()">
+                    <Input @bind-Value=model.parameter_default_value4 />
+                </FormItem>
+            }
+            @if (keyValuePairs.TryGetValue("parameter_name5", out var value5))
+            {
+                <FormItem Label="@keyValuePairs["parameter_name5"].ToString()">
+                    <Input @bind-Value=model.parameter_default_value5 />
+                </FormItem>
+            }
+            @if (keyValuePairs.TryGetValue("parameter_name6", out var value6))
+            {
+                <FormItem Label="@keyValuePairs["parameter_name6"].ToString()">
+                    <Input @bind-Value=model.parameter_default_value6 />
+                </FormItem>
+            }
+            @if (keyValuePairs.TryGetValue("parameter_name7", out var value7))
+            {
+                <FormItem Label="@keyValuePairs["parameter_name7"].ToString()">
+                    <Input @bind-Value=model.parameter_default_value7 />
+                </FormItem>
+            }
+            @if (keyValuePairs.TryGetValue("parameter_name8", out var value8))
+            {
+                <FormItem Label="@keyValuePairs["parameter_name8"].ToString()">
+                    <Input @bind-Value=model.parameter_default_value8 />
+                </FormItem>
+            }
+            <br />
+            <FormItem WrapperColOffset="8" WrapperColSpan="16">
+                <Button @onclick="BackCommand">
+                    Назад
+                </Button>
+                <Button Style="background-color: #1db394" @onclick="SendCommandAsync" Type="@ButtonType.Primary" HtmlType="submit">
+                    Отправить
+                </Button>
+            </FormItem>
+        </Form>
+    </GridCol>
+</GridRow>
+<Table @ref="table"
+       TItem="TerminalResponse"
+       DataSource="@terminalResponses"
+       Total="_total"
+       @bind-PageIndex="_pageIndex"
+       @bind-PageSize="_pageSize"
+       Size="TableSize.Small">
+    <Selection Key="@(context.id.ToString())" />
+    <PropertyColumn Property="c=>c.terminal_id" Sortable />
+    <PropertyColumn Property="c=>c.time_created" Format="yyyy-MM-dd" Sortable />
+    <PropertyColumn Property="c=>c.parameter1" Sortable />
+    <PropertyColumn Property="c=>c.parameter2" Sortable />
+    <PropertyColumn Property="c=>c.parameter3" Sortable />
+    <PropertyColumn Property="c=>c.parameter4" Sortable />
+    <PropertyColumn Property="c=>c.parameter5" Sortable />
+    <PropertyColumn Property="c=>c.parameter6" Sortable />
+    <PropertyColumn Property="c=>c.parameter7" Sortable />
+    <PropertyColumn Property="c=>c.parameter8" Sortable />
+    <PropertyColumn Property="c=>c.state_name" Sortable />
+</Table>
+
+@code
+{
+    [Inject]
+    public TokenService tokenService { get; set; }
+
+    [Inject]
+    public CommandService commandService { get; set; }
+
+    [Inject]
+    public TerminalService terminalService { get; set; }
+
+    [Inject]
+    public TerminalResponseService terminalResponseService { get; set; }
+
+    [Inject]
+    public TerminalRequestService terminalRequestService { get; set; }
+
+    [Inject]
+    public NavigationManager NavigationManager { get; set; }
+
+    private string terminalId { get; set; }
+
+    private Commands model { get; set; } = new();
+
+    private List<TerminalResponse> terminalResponses { get; set; } = new();
+
+    private Dictionary<string, object> keyValuePairs { get; set; } = new();
+
+    private Dictionary<string, string> propertyDictionary { get; set; } = new()
+    {
+        { "parameter_name1", "parameter_default_value1" },
+        { "parameter_name2", "parameter_default_value2" },
+        { "parameter_name3", "parameter_default_value3" },
+        { "parameter_name4", "parameter_default_value4" },
+        { "parameter_name5", "parameter_default_value5" },
+        { "parameter_name6", "parameter_default_value6" },
+        { "parameter_name7", "parameter_default_value7" },
+        { "parameter_name8", "parameter_default_value8" },
+    };
+
+    private List<Commands> _commands;
+
+    private int _selectedValue;
+
+    private Commands _selectedItem;
+
+    private List<Terminal> terminals { get; set; } = new List<Terminal>();
+
+    private List<string> terminalsId { get; set; } = new List<string>();
+
+    private void OnSelectedItemChangedHandler(Commands value)
+    {
+        keyValuePairs.Clear();
+
+        _selectedItem = value;
+
+        Type type = value.GetType();
+        PropertyInfo[] properties = type.GetProperties();
+
+        foreach (PropertyInfo property in properties)
+        {
+            string propertyName = property.Name;
+            object propertyValue = property.GetValue(value);
+
+            if (propertyName.StartsWith("param") && propertyValue != null)
+                keyValuePairs.Add(propertyName, propertyValue);
+        }
+
+        StateHasChanged();
+    }
+
+    private void OnBlur()
+    {
+        Console.WriteLine("blur");
+    }
+
+    private void OnFocus()
+    {
+        Console.WriteLine("focus");
+    }
+
+    private void OnSearch(string value)
+    {
+        Console.WriteLine($"search: {value}");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        terminalResponses.Clear();
+        terminals.Clear();
+        terminalsId.Clear();
+
+        await tokenService.GetToken("user2", "password2");
+
+        terminals = (await terminalService.GetByQuery("s")).ToList();
+
+        foreach (var terminal in terminals)
+        {
+            terminalsId.Add(terminal.Id.ToString());
+            terminalResponses.AddRange((await terminalResponseService.GetByQuery($"/{terminal.Id}/commands")).ToList());
+        }
+
+        terminalResponses = terminalResponses.OrderByDescending(t => t.time_created).ToList();
+
+        _commands = (await commandService.GetByQuery("/types")).ToList();
+        StateHasChanged();
+    }
+
+    private async Task SendCommandAsync()
+    {
+        var terminalRequest = new TerminalRequest
+            {
+                command_id = Convert.ToInt32(_selectedValue),
+                parameter1 = Convert.ToInt32(model.parameter_default_value1),
+                parameter2 = Convert.ToInt32(model.parameter_default_value2),
+                parameter3 = Convert.ToInt32(model.parameter_default_value3),
+                parameter4 = Convert.ToInt32(model.parameter_default_value4),
+                parameter5 = Convert.ToInt32(model.parameter_default_value5),
+                parameter6 = Convert.ToInt32(model.parameter_default_value6),
+                parameter7 = Convert.ToInt32(model.parameter_default_value7),
+                parameter8 = Convert.ToInt32(model.parameter_default_value8),
+            };
+
+        var terminalsHistory = await terminalRequestService.PostAsync(terminalRequest, Convert.ToInt32(terminalId), "commands");
+        
+        NavigationManager.NavigateTo("/fetchdata", true);
+    }
+
+    private void BackCommand()
+    {
+        
+    }
+
+    ITable table;
+
+    int _pageIndex = 1;
+    int _pageSize = 10;
+    int _total = 0;
+}
